@@ -18,4 +18,19 @@ public class YofikWebService {
     public List<Student> search(SearchRequest request) {
         return studentDao.searchStudents(request);
     }
+
+    @WebMethod(operationName = "create")
+    public long create(CreateRequest request) {
+        return studentDao.create(request);
+    }
+
+    @WebMethod(operationName = "update")
+    public boolean update(UpdateRequest request) {
+        return studentDao.update(request);
+    }
+
+    @WebMethod(operationName = "delete")
+    public boolean delete(long id) {
+        return studentDao.delete(id);
+    }
 }

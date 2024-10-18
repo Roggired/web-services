@@ -5,7 +5,9 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import ru.itmo.yofik.webservices.back.api.ws.CreateRequest;
 import ru.itmo.yofik.webservices.back.api.ws.SearchRequest;
+import ru.itmo.yofik.webservices.back.api.ws.UpdateRequest;
 import ru.itmo.yofik.webservices.back.model.Student;
 
 import java.util.List;
@@ -30,6 +32,46 @@ public class StudentDao {
         ).orderBy(cb.asc(root.get(Student.Fields.id)));
 
         return entityManager.createQuery(query).getResultList();
+    }
+
+    public long create(CreateRequest request) {
+        var student = new Student();
+        student.setId(0L);
+        student.setFirstName(request.getFirstName());
+        student.setLastName(request.getLastName());
+        student.setPatronymic(request.getPatronymic());
+        student.setAge(request.getAge());
+        student.setHeight(request.getHeight());
+        entityManager.persist(student);
+        return student.getId();
+    }
+
+    public boolean update(UpdateRequest request) {
+        var student = new Student();
+        student.setId(request.getId());
+        student.setFirstName(request.getFirstName());
+        student.setLastName(request.getLastName());
+        student.setPatronymic(request.getPatronymic());
+        student.setAge(request.getAge());
+        student.setHeight(request.getHeight());
+
+        try {
+            entityManager.persist(student);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean delete(long id) {
+        var student = new Student();
+        student.setId(id);
+        try {
+            entityManager.remove(student);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Predicate createFirstNameSearchPredicate(CriteriaBuilder cb, Root<Student> root, SearchRequest request) {
