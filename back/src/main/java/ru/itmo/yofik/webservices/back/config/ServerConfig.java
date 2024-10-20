@@ -39,8 +39,6 @@ public class ServerConfig {
                         .stream()
                         .collect(Collectors.toMap(entry -> (String) entry.getKey(), Map.Entry::getValue))
         ); // just because of types incompatibility
-        try(var entityManagerFactory = Persistence.createEntityManagerFactory(persistenceConfig)) {
-            return entityManagerFactory.createEntityManager();
-        }
+        return Persistence.createEntityManagerFactory(persistenceConfig).createEntityManager();
     }
 }
