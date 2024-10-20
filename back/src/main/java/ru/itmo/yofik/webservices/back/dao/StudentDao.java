@@ -10,7 +10,10 @@ import ru.itmo.yofik.webservices.back.api.ws.SearchRequest;
 import ru.itmo.yofik.webservices.back.api.ws.UpdateRequest;
 import ru.itmo.yofik.webservices.back.model.Student;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 public class StudentDao {
@@ -21,13 +24,15 @@ public class StudentDao {
         var query = cb.createQuery(Student.class);
         var root = query.from(Student.class);
 
-        query = query.select(root).where(
+        query.select(root).where(
                 cb.and(
-                        createFirstNameSearchPredicate(cb, root, request),
-                        createLastNameSearchPredicate(cb, root, request),
-                        createPatronymicSearchPredicate(cb, root, request),
-                        createAgeSearchPredicate(cb, root, request),
-                        createHeightSearchPredicate(cb, root, request)
+                        Stream.of(
+                                createFirstNameSearchPredicate(cb, root, request),
+                                createLastNameSearchPredicate(cb, root, request),
+                                createPatronymicSearchPredicate(cb, root, request),
+                                createAgeSearchPredicate(cb, root, request),
+                                createHeightSearchPredicate(cb, root, request)
+                        ).filter(Objects::nonNull).toList()
                 )
         ).orderBy(cb.asc(root.get(Student.Fields.id)));
 
