@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ru.itmo.yofik.webservices.back.api.ws.SearchRequest;
 import ru.itmo.yofik.webservices.back.model.Student;
 
@@ -13,11 +14,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+@Slf4j
 @RequiredArgsConstructor
 public class StudentDao {
     private final EntityManager entityManager;
 
     public List<Student> searchStudents(SearchRequest request) {
+        log.info("Got searchStudents request: {}", request);
         var cb = entityManager.getCriteriaBuilder();
         var query = cb.createQuery(Student.class);
         var root = query.from(Student.class);

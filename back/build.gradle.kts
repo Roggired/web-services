@@ -22,6 +22,9 @@ dependencies {
     implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
     implementation("org.hibernate.orm:hibernate-core:7.0.0.Beta1")
     implementation("org.postgresql:postgresql:42.7.4")
+
+    implementation("org.slf4j:slf4j-api:2.0.16")
+    implementation("ch.qos.logback:logback-classic:1.5.11")
 }
 
 application {
