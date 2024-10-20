@@ -18,23 +18,33 @@ public class YofikWebService {
 
     @WebMethod(operationName = "search")
     public List<Student> search(SearchRequest request) {
+        log.info("Got SearchStudents request: {}", request);
         var result = studentDao.searchStudents(request);
-        log.info(result.toString());
+        log.info("Students found: {}", result);
         return result;
     }
 
     @WebMethod(operationName = "create")
     public long create(CreateRequest request) {
-        return studentDao.create(request);
+        log.info("Got CreateRequest: {}", request);
+        var result = studentDao.create(request);
+        log.info("Created student id: {}", result);
+        return result;
     }
 
     @WebMethod(operationName = "update")
     public boolean update(UpdateRequest request) {
-        return studentDao.update(request);
+        log.info("Got UpdateRequest: {}", request);
+        var result = studentDao.update(request);
+        log.info("Update status: {}", result);
+        return result;
     }
 
     @WebMethod(operationName = "delete")
     public boolean delete(long id) {
-        return studentDao.delete(id);
+        log.info("Got DeleteRequest: {}", id);
+        var result = studentDao.delete(id);
+        log.info("Delete status: {}", result);
+        return result;
     }
 }
