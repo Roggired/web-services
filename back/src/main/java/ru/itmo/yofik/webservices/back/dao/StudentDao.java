@@ -5,9 +5,15 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.itmo.yofik.webservices.back.api.ws.CreateRequest;
+import ru.itmo.yofik.webservices.back.api.ws.ErrorFaultBean;
 import ru.itmo.yofik.webservices.back.api.ws.SearchRequest;
 import ru.itmo.yofik.webservices.back.api.ws.UpdateRequest;
+import ru.itmo.yofik.webservices.back.api.ws.exceptions.InternalServerException;
+import ru.itmo.yofik.webservices.back.api.ws.exceptions.InvalidDataException;
+import ru.itmo.yofik.webservices.back.api.ws.exceptions.NotFoundException;
 import ru.itmo.yofik.webservices.back.model.Student;
 
 import java.util.List;
@@ -16,9 +22,22 @@ import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 public class StudentDao {
+    private static final Logger log = LoggerFactory.getLogger(StudentDao.class);
     private final EntityManager entityManager;
 
-    public List<Student> searchStudents(SearchRequest request) {
+    public List<Student> searchStudents(SearchRequest request) throws InvalidDataException {
+        final var filters = request.getFilters();
+        if (filters.getByAgeMin() != null && filters.getByAgeMax() != null && filters.getByAgeMin() > filters.getByAgeMax()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("ageMin should be not greater than ageMax");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (filters.getByHeightMin() != null && filters.getByHeightMax() != null && filters.getByHeightMin() > filters.getByHeightMax()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("heightMin should be not greater than heightMax");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+
         var cb = entityManager.getCriteriaBuilder();
         var query = cb.createQuery(Student.class);
         var root = query.from(Student.class);
@@ -38,7 +57,33 @@ public class StudentDao {
         return entityManager.createQuery(query).getResultList();
     }
 
-    public long create(CreateRequest request) {
+    public long create(CreateRequest request) throws InvalidDataException {
+        if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("firstName is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getLastName() == null || request.getLastName().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("lastName is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getPatronymic() == null || request.getPatronymic().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("patronymic is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getAge() <= 0) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("age must be positive");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getHeight() <= 0) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("height must be positive");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+
         var student = new Student();
         student.setId(0L);
         student.setFirstName(request.getFirstName());
@@ -46,13 +91,47 @@ public class StudentDao {
         student.setPatronymic(request.getPatronymic());
         student.setAge(request.getAge());
         student.setHeight(request.getHeight());
+        entityManager.getTransaction().begin();
         entityManager.persist(student);
+        entityManager.getTransaction().commit();
         return student.getId();
     }
 
-    public boolean update(UpdateRequest request) {
-        var student = new Student();
-        student.setId(request.getId());
+    public boolean update(UpdateRequest request) throws InvalidDataException, NotFoundException {
+        if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("firstName is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getLastName() == null || request.getLastName().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("lastName is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getPatronymic() == null || request.getPatronymic().isBlank()) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("patronymic is mandatory");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getAge() <= 0) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("age must be positive");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+        if (request.getHeight() <= 0) {
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("height must be positive");
+            throw new InvalidDataException("Invalid data have provided", faultBean);
+        }
+
+        entityManager.getTransaction().begin();
+        var student = getById(request.getId());
+        if (student == null) {
+            log.error("Student with id: {} not found", request.getId());
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("Requested student not found");
+            throw new NotFoundException("Not found", faultBean);
+        }
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPatronymic(request.getPatronymic());
@@ -60,22 +139,42 @@ public class StudentDao {
         student.setHeight(request.getHeight());
 
         try {
-            entityManager.persist(student);
+            entityManager.getTransaction().commit();
             return true;
         } catch (Exception e) {
-            return false;
+            log.error("Unexpected error", e);
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage(e.getClass().getName());
+            entityManager.getTransaction().rollback();
+            throw new InternalServerException("Unexpected error", faultBean);
         }
     }
 
-    public boolean delete(long id) {
-        var student = new Student();
-        student.setId(id);
+    public boolean delete(long id) throws NotFoundException {
+        entityManager.getTransaction().begin();
+        var student = getById(id);
+        if (student == null) {
+            log.error("Student with id: {} not found", id);
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("Requested student not found");
+            entityManager.getTransaction().rollback();
+            throw new NotFoundException("Not found", faultBean);
+        }
         try {
             entityManager.remove(student);
+            entityManager.getTransaction().commit();
             return true;
         } catch (Exception e) {
-            return false;
+            log.error("Unexpected error", e);
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage(e.getClass().getName());
+            entityManager.getTransaction().rollback();
+            throw new InternalServerException("Unexpected error", faultBean);
         }
+    }
+
+    private Student getById(long id) {
+        return entityManager.createQuery("SELECT s FROM Student s WHERE s.id = " + id, Student.class).getSingleResultOrNull();
     }
 
     private Predicate createFirstNameSearchPredicate(CriteriaBuilder cb, Root<Student> root, SearchRequest request) {
