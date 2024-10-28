@@ -49,4 +49,20 @@ public class YofikWebService {
         log.info("Delete status: {}", result);
         return result;
     }
+
+    @WebMethod(operationName = "setAvatar")
+    public boolean setAvatar(SetAvatarRequest request) throws NotFoundException {
+        log.info("Got SetAvatarRequest: {}", request);
+        var result = studentDao.setAvatar(request);
+        log.info("Set avatar status: {}", result);
+        return result;
+    }
+
+    @WebMethod(operationName = "getAvatar")
+    public String getAvatar(long id) throws NotFoundException {
+        log.info("Got GetAvatarRequest: {}", id);
+        var result = studentDao.getAvatar(id);
+        log.info("Found avatar: {}", result);
+        return result;
+    }
 }

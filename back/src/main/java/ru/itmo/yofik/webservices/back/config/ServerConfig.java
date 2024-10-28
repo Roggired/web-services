@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Persistence;
 import jakarta.persistence.PersistenceConfiguration;
 import org.hibernate.jpa.HibernatePersistenceProvider;
+import ru.itmo.yofik.webservices.back.model.Avatar;
 import ru.itmo.yofik.webservices.back.model.Student;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ public class ServerConfig {
         var persistenceConfig = new PersistenceConfiguration("default");
         persistenceConfig.provider(HibernatePersistenceProvider.class.getName());
         persistenceConfig.managedClass(Student.class);;
+        persistenceConfig.managedClass(Avatar.class);;
         persistenceConfig.properties(
                 properties.entrySet()
                         .stream()

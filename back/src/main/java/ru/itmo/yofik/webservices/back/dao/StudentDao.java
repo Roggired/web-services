@@ -7,13 +7,11 @@ import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.itmo.yofik.webservices.back.api.ws.CreateRequest;
-import ru.itmo.yofik.webservices.back.api.ws.ErrorFaultBean;
-import ru.itmo.yofik.webservices.back.api.ws.SearchRequest;
-import ru.itmo.yofik.webservices.back.api.ws.UpdateRequest;
+import ru.itmo.yofik.webservices.back.api.ws.*;
 import ru.itmo.yofik.webservices.back.api.ws.exceptions.InternalServerException;
 import ru.itmo.yofik.webservices.back.api.ws.exceptions.InvalidDataException;
 import ru.itmo.yofik.webservices.back.api.ws.exceptions.NotFoundException;
+import ru.itmo.yofik.webservices.back.model.Avatar;
 import ru.itmo.yofik.webservices.back.model.Student;
 
 import java.util.List;
@@ -171,6 +169,66 @@ public class StudentDao {
             entityManager.getTransaction().rollback();
             throw new InternalServerException("Unexpected error", faultBean);
         }
+    }
+
+    public boolean setAvatar(SetAvatarRequest request) throws NotFoundException {
+        entityManager.getTransaction().begin();
+        var student = getById(request.getStudentId());
+        if (student == null) {
+            log.error("Student with id: {} not found", request.getStudentId());
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("Requested student not found");
+            entityManager.getTransaction().rollback();
+            throw new NotFoundException("Not found", faultBean);
+        }
+
+        var avatar = entityManager.createQuery("SELECT a FROM Avatar a WHERE a.studentId = " + request.getStudentId(), Avatar.class).getSingleResultOrNull();
+        if (avatar == null) {
+            avatar = new Avatar();
+            avatar.setStudentId(request.getStudentId());
+            avatar.setContent(request.getContent());
+
+            try {
+                entityManager.persist(avatar);
+                entityManager.getTransaction().commit();
+                return true;
+            }  catch (Exception e) {
+                log.error("Unexpected error", e);
+                var faultBean = new ErrorFaultBean();
+                faultBean.setMessage(e.getClass().getName());
+                entityManager.getTransaction().rollback();
+                throw new InternalServerException("Unexpected error", faultBean);
+            }
+        }
+
+        try {
+            avatar.setContent(request.getContent());
+            entityManager.getTransaction().commit();
+            return true;
+        } catch (Exception e) {
+            log.error("Unexpected error", e);
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage(e.getClass().getName());
+            entityManager.getTransaction().rollback();
+            throw new InternalServerException("Unexpected error", faultBean);
+        }
+    }
+
+    public String getAvatar(long id) throws NotFoundException {
+        entityManager.getTransaction().begin();
+        var avatar = entityManager.createQuery("SELECT a FROM Avatar a WHERE a.studentId = " + id, Avatar.class).getSingleResultOrNull();
+        if (avatar == null) {
+            log.error("Avatar for student id: {} not found", id);
+            var faultBean = new ErrorFaultBean();
+            faultBean.setMessage("Requested avatar not found");
+            entityManager.getTransaction().rollback();
+            throw new NotFoundException("Not found", faultBean);
+        }
+
+        var result = avatar.getContent();
+        entityManager.getTransaction().commit();
+
+        return result;
     }
 
     private Student getById(long id) {
